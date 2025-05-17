@@ -12,7 +12,7 @@ python get_concert_from_google.py
 ## TODO list :heavy_check_mark: 
 Idx | Content | State | Note
 :------------ | :-------------| :-------------| :-------------
-1 | Split video into frames | :heavy_check_mark: | 
+1 | Construct the basic framework about how the whole code works | :heavy_check_mark: | 
 2 | Recognize frames and generate board, black point and white point | :heavy_check_mark: | only detect pieces, make a version with predict pieces condition
 3 | Select valid frames and remove duplicate, occlusion frames | | 
 4 | Draw output frame with specific input and output | :heavy_check_mark: |
