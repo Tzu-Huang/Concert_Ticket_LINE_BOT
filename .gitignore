@@ -1,0 +1,18 @@
+# 👉 Sensitive info
+.env
+
+# 👉 Python bytecode
+__pycache__/
+*.py[cod]
+
+# 👉 Jupyter stuff (if used)
+.ipynb_checkpoints
+
+# 👉 VSCode or other editor config
+.vscode/
+.idea/
+
+# 👉 Virtual environments
+venv/
+env/
+.venv/
