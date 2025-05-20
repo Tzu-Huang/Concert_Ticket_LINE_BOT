@@ -6,7 +6,7 @@ It supports artist tracking, data filtering, and media integration to deliver ti
 
 ## How to Run
 ```
-python get_concert_from_google.py
+python app.py
 ```
 
 ## TODO list :heavy_check_mark: 
@@ -14,7 +14,18 @@ Idx | Content | State | Note
 :------------ | :-------------| :-------------| :-------------
 1 | Construct the basic framework about how the whole code works | :heavy_check_mark: | 
 2 | Make sure all the information are accurate and provide relevent pictures | :heavy_check_mark: | Still need to improve on code efficiency
+3 | Linked the program with LINE BOT | :heavy_check_mark: | 
 ## LOG
+### 5/20/2025
+- Implemented fallback image handling using Cloudinary
+    1. Use Cloudinary for more control and reliability
+    2. Added a upload_to_cloudinary(image_url) function that validates content type is image/* before uploading
+- Update get_best_concert_info_line() to:
+    1. Automatically upload fetched images to Cloudinary
+    2. Integrate fallback logic and prevent invalid or broken image URLs from being used
+ - Linked the code with the LINE Bot and enhanced user experience
+    1. Added intermediate reply: "🔍 查詢中，請稍候..." when user sends a query
+    2. Built and implemented a visually styled Flex Message card
 ### 5/17/2025
 - Installed Git system
 - Wrote a function choose_best_concert_info() that:
