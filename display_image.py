@@ -16,11 +16,18 @@ def display_image(link):
 
 
 
-def show_image_locally(link):
-    response = requests.get(link)
+def show_image_locally(image_url):
+    response = requests.get(image_url)
+
+    # 檢查是否成功回傳圖片
+    if response.status_code != 200:
+        print(f"[ERROR] Failed to fetch image: {response.status_code}")
+        return
+
+    if 'image' not in response.headers.get('Content-Type', ''):
+        print(f"[ERROR] URL does not point to an image: {response.headers.get('Content-Type')}")
+        return
+
+    # 正常讀取圖片
     img = PILImage.open(BytesIO(response.content))
     img.show()
-
-
-img_url = "https://res.xinruipiao.com/2024/10-14/09/649371a67acbfface765e80d07fc539f.png"
-show_image_locally(img_url)

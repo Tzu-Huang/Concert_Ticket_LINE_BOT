@@ -6,21 +6,53 @@ from chatgpt_filter import choose_best_concert_info
 import json
 from dotenv import load_dotenv
 import os
+import cloudinary
+import cloudinary.uploader
+import requests
 
 load_dotenv()  # 會讀取 .env 檔
 
 # 現在你就可以安全地取得 API key 了：
-openai_api_key = os.getenv("OPENAI_API_KEY")
-cx = os.getenv("CX")
-google_api_key = os.getenv("API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+CX = os.getenv("CX")
+API_KEY = os.getenv("API_KEY")
 
+# ✅ 設定 Cloudinary 憑證
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET")
+)
 
-# ✅ 要搜尋的歌手列表
-artists = ["luav"]
+# ✅ 本地測試用
+artists = ["蔡琴"]
 
 # ✅ 儲存先前搜尋結果
 last_results = {}
 
+def upload_to_cloudinary(image_url):
+    fallback_url = "https://drive.google.com/uc?export=view&id=1aIcG4dOEuNH6rnaRE95PQ-J4htAmtf08"
+
+    try:
+        resp = requests.get(image_url, timeout=6)
+        content_type = resp.headers.get("Content-Type", "")
+        if not content_type.startswith("image/"):
+            print(f"[❌] 圖片格式錯誤：{content_type}")
+            return fallback_url
+
+        upload_result = cloudinary.uploader.upload(resp.content, resource_type="image")
+        uploaded_url = upload_result.get("secure_url")
+        if not uploaded_url:
+            print("[❌] Cloudinary 回傳空的網址")
+            return fallback_url
+
+        print(f"[✅] 上傳成功：{uploaded_url}")
+        return uploaded_url
+
+    except Exception as e:
+        print(f"[❌] Cloudinary 上傳失敗：{e}")
+        return fallback_url
+    
 def get_concerts_from_google(artist):
     service = build("customsearch", "v1", developerKey=API_KEY)
     current_year = datetime.now().year
@@ -99,7 +131,6 @@ def search_concert_image(artist):
         return items[0].get("link", "（找不到圖片）")
     return "（找不到圖片）"
 
-
 def check_updates():
     updated = False
     for artist in artists:
@@ -129,34 +160,78 @@ def check_updates():
 
     if not updated:
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 所有歌手都沒有新演唱會資訊。")
-# 🔁 單次執行
-if __name__ == "__main__":
-    check_updates()
+# # 🔁 單次執行
+# if __name__ == "__main__":
+#     check_updates()
 
-    # ✅ 整理所有歌手的資訊（多筆候選資料）
-    concert_data = []
-    for artist in artists:
-        raw_data = get_concert_details(artist)
-        candidates = []
-        for item in raw_data:
-            candidates.append({
-                "date": item["date"],
-                "location": item["location"]
-            })
-        concert_data.append({
-            "artist": artist,
-            "candidates": candidates
+#     # ✅ 整理所有歌手的資訊（多筆候選資料）
+#     concert_data = []
+#     for artist in artists:
+#         raw_data = get_concert_details(artist)
+#         candidates = []
+#         for item in raw_data:
+#             candidates.append({
+#                 "date": item["date"],
+#                 "location": item["location"]
+#             })
+#         concert_data.append({
+#             "artist": artist,
+#             "candidates": candidates
+#         })
+
+#     # ✅ 呼叫 ChatGPT 判斷最準確的資訊
+#     result = choose_best_concert_info(concert_data)
+
+#     try:
+#         filtered_results = json.loads(result)
+#         print("\n🎯 最可信的演唱會資訊：\n")
+#         for item in filtered_results:
+#             print(f"🎤 {item['artist']}：{item['date']} @ {item['location']}")
+#     except json.JSONDecodeError:
+#         print("⚠️ ChatGPT 回傳的格式不是 JSON，原始回應如下：\n")
+#         print(result)
+def get_best_concert_info_for_line(artist):
+    raw_data = get_concert_details(artist)
+
+    candidates = []
+    image_url = None
+    link_url = None
+
+    for item in raw_data:
+        candidates.append({
+            "date": item["date"],
+            "location": item["location"]
         })
+        if not image_url and item.get("image"):
+            image_url = item["image"]
+        if not link_url and item.get("link"):
+            link_url = item["link"]
 
-    # ✅ 呼叫 ChatGPT 判斷最準確的資訊
+    concert_data = [{
+        "artist": artist,
+        "candidates": candidates
+    }]
+
     result = choose_best_concert_info(concert_data)
 
     try:
         filtered_results = json.loads(result)
-        print("\n🎯 最可信的演唱會資訊：\n")
-        for item in filtered_results:
-            print(f"🎤 {item['artist']}：{item['date']} @ {item['location']}")
+        final = filtered_results[0]
+
+        # ✅ 上傳圖片至 Cloudinary
+        image_url_uploaded = upload_to_cloudinary(image_url) if image_url else None
+        
+        if not image_url_uploaded:
+            image_url_uploaded = "https://i.imgur.com/4AiXzf8.jpeg"
+            print(f"[DEBUG] 原始圖片網址：{image_url}")
+            print(f"[DEBUG] 上傳後 Cloudinary 圖片網址：{image_url_uploaded}")
+        return {
+            "artist": final["artist"],
+            "date": final["date"],
+            "location": final["location"],
+            "image": image_url_uploaded,
+            "link": link_url or "https://google.com"
+        }
     except json.JSONDecodeError:
-        print("⚠️ ChatGPT 回傳的格式不是 JSON，原始回應如下：\n")
-        print(result)
+        return None
 

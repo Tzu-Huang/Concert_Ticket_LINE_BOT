@@ -1,9 +1,14 @@
 
 import openai
 import os
+from dotenv import load_dotenv
+
+load_dotenv()  # 會讀取 .env 檔
 
 # ✅ 建立 OpenAI client（新版 API 寫法）
-client = openai.OpenAI(api_key=openai_api_key)
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
 def choose_best_concert_info(concert_data):
     messages = [
