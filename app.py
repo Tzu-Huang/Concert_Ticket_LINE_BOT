@@ -3,6 +3,7 @@ from linebot import LineBotApi, WebhookHandler
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 from dotenv import load_dotenv
 import os
+import re
 from linebot.models import TextSendMessage, ImageSendMessage
 from linebot.models import FlexSendMessage
 import requests
@@ -14,6 +15,9 @@ app = Flask(__name__)
 line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
 handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
 
+@app.get("/health")
+def health():
+    return "OK", 200
 @app.route("/callback", methods=['POST'])
 def callback():
     signature = request.headers['X-Line-Signature']
@@ -72,31 +76,46 @@ def build_concert_flex(artist, date, location, image_url, link_url):
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_id = event.source.user_id
-    artist = event.message.text.strip()
+    text = (event.message.text or "").strip()
 
-    # 先回覆「查詢中...」
+    # 僅在「查詢 <藝人> 的演唱會」時觸發
+    m = re.match(r'^查詢[\s　]+(.+?)[\s　]*的演唱會$', text)
+    if not m:
+        # 不符合格式：靜默忽略（或改成回傳指令說明）
+        return
+
+    artist = m.group(1)
+
+    # 1) 先用 reply_token 回覆一次（只能一次）
     line_bot_api.reply_message(
         event.reply_token,
-        TextSendMessage(text=f"🔍 正在幫你搜尋「{artist}」的演唱會資訊...")
+        TextSendMessage(text=f"🔎 已收到！正在搜尋「{artist}」的演唱會資訊…")
     )
 
+    # 2) 查詢（可花較久時間），完了用 push 回傳結果
     try:
         from get_concert_from_google import get_best_concert_info_for_line
         result = get_best_concert_info_for_line(artist)
 
         if result:
+            # 你自己的 Flex 產生器
             flex = build_concert_flex(
-                artist=result['artist'],
-                date=result['date'],
-                location=result['location'],
-                image_url=result['image'],
-                link_url=result['link']
+                artist=result.get('artist', artist),
+                date=result.get('date', '日期未提供'),
+                location=result.get('location', '地點未提供'),
+                image_url=result.get('image', None),
+                link_url=result.get('link', None),
             )
             line_bot_api.push_message(user_id, flex)
         else:
-            line_bot_api.push_message(user_id, TextSendMessage(text="❌ 找不到演唱會資訊，請稍後再試。"))
+            line_bot_api.push_message(user_id, TextSendMessage(
+                text=f"❌ 找不到「{artist}」的演唱會資訊，換個關鍵字再試試？"
+            ))
     except Exception as e:
-        line_bot_api.push_message(user_id, TextSendMessage(text=f"⚠️ 發生錯誤：{str(e)}"))
+        print("concert query error:", e)
+        line_bot_api.push_message(user_id, TextSendMessage(
+            text="⚠️ 查詢時發生錯誤，稍後再試或換個藝人名稱。"
+        ))
 
 if __name__ == "__main__":
     app.run(port=8000)
