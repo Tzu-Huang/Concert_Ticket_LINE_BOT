@@ -29,7 +29,7 @@ def callback():
         abort(400)
     return 'OK'
 
-def build_concert_flex(artist, date, location, image_url, link_url):
+def build_concert_flex(artist, date, location, image_url, link_url): # 設定LINE 圖文卡片 訊息格式
     flex_content = {
         "type": "bubble",
         "hero": {
