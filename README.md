@@ -16,6 +16,10 @@ Idx | Content | State | Note
 2 | Make sure all the information are accurate and provide relevent pictures | :heavy_check_mark: | Still need to improve on code efficiency
 3 | Linked the program with LINE BOT | :heavy_check_mark: | 
 ## LOG
+### 9/13/2025
+- Adding Command Logic
+    1. Decided the bot should only respond when users type in the format: 查詢 [artist] 的演唱會.
+    2. Ignore the input if the command condition is not met.
 ### 5/20/2025
 - Implemented fallback image handling using Cloudinary
     1. Use Cloudinary for more control and reliability
