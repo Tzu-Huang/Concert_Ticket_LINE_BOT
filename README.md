@@ -15,6 +15,8 @@ Idx | Content | State | Note
 1 | Construct the basic framework about how the whole code works | :heavy_check_mark: | 
 2 | Make sure all the information are accurate and provide relevent pictures | :heavy_check_mark: | Still need to improve on code efficiency
 3 | Linked the program with LINE BOT | :heavy_check_mark: | 
+4 | Created specific command to the LINE BOT | :heavy_check_mark: | Waiting for more command
+5 | Making sure the program only access the future events.
 ## LOG
 ### 9/13/2025
 - Adding Command Logic
